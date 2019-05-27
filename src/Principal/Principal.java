@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.tika.sax.BodyContentHandler;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.tools.PDFText2HTML;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.pdf.PDFParser;
@@ -31,14 +33,78 @@ public class Principal {
 	
 	public static void main (String args[]) {
 		Principal principal = new Principal();
-		
+		principal.RUTA_PDF = "C:/pdfs/aprendiz.pdf";
 		//principal.descargarPdf();
-		//String texto = principal.convertirPDFaTXT(RUTA_PDF);
-		//principal.GuardarArchivoTxt(texto);
 		
+		List<String> contenidoPdf= principal.obtenerListaPDF();
+		principal.GuardarArchivoTxt(contenidoPdf);
+
+		principal.obtenerListaCompletaBUSQUEDA().forEach(System.out::println);
+
+
+	}
+	
+	public List<String> obtenerListaCompletaBUSQUEDA(){
+		List<String> categorias= obtenerListaCompeticiones();
+		List<String> contenidoPdf= obtenerListaPDF();
+		List<String> listaNueva = new ArrayList<String>();
 		
+		for(int i=0; i<categorias.size() ; i++) {
+			String categoria = categorias.get(i);
+			int indiceCat = contenidoPdf.indexOf(categoria);
+			if( i+1 <= categorias.size()-1) { // si hay siguiente categoria que no se sale de la colección...
+				int siguiente = contenidoPdf.indexOf(categorias.get(i+1));
+				for(int j=indiceCat+1; j<siguiente ; j++) {
+					String linea = contenidoPdf.get(j);
+					if( ((j+1) <= categorias.size()-1 ) ||  !linea.equals(categorias.get(i+1))  ) {
+							listaNueva.add(categoria + " --- " + linea);
+					}
+				}
+			}
+		}
+		// falta la ultima categoria.
+		String ultimaCategoria = categorias.get(categorias.size()-1);
+		int pos = contenidoPdf.indexOf(ultimaCategoria);
+		for(int i=pos+1; i< contenidoPdf.size() ; i++) {
+			listaNueva.add(ultimaCategoria + " --- " + contenidoPdf.get(i));
+		}
+		return listaNueva;
 	}
 
+	 public List<String> obtenerListaPDF() {
+		//  q no tengan mas de 1 espacio. y q no esten vacios
+		 // obtiene lista de todo el pdf.
+		 	String html = convertirPDFaHTML(RUTA_PDF);
+			List<String> lista = new ArrayList<String>();
+			Document doc = Jsoup.parse(html);
+			Elements lineas = doc.select("p");  
+			for (Element linea : lineas) {
+				if( !linea.text().isEmpty()   )
+				lista.add(linea.text());
+			}
+			lista.stream()
+				       .filter( linea ->  !linea.isEmpty() )
+				       .map(linea -> Cadenas.middleTrim(linea) );
+			return lista;
+		}
+	
+	 public List<String> obtenerListaCompeticiones() {
+		 // obtiene lista de competiciones.
+		 	String html = convertirPDFaHTML(RUTA_PDF);
+			List<String> lista = new ArrayList<String>();
+			Document doc = Jsoup.parse(html);
+			Elements lineas = doc.select("p b");  
+			for (Element linea : lineas) {
+				String txt = linea.text().toUpperCase();
+				if(!txt.startsWith("FEDERAC") &&  !txt.startsWith("L O C") &&  !txt.contains("APLAZADO") &&
+				   !txt.isEmpty() && !txt.matches("^[0-9]{2}/[0-9]{2}.*") &&  !txt.contains("SUSPENDIDO")  )
+				lista.add(linea.text());
+			}
+			return lista;
+		}
+
+	 
+	 
 	// busca el patron y devuelve cada linea si lo contiene.
 	public List<String> buscarEnFichero(String ruta , String patron){
 		List<String> busqueda = new ArrayList<String>();
@@ -56,16 +122,28 @@ public class Principal {
 		
 		return busqueda;
 	}
+	public List<String> buscarEnLista(List<String> lista , String patron){
+		List<String> busqueda = new ArrayList<String>();
+		patron = patron.toUpperCase();
+		String registro = "";
+		for(int i=0; i< lista.size() ; i++ ) {
+			registro = lista.get(i).toUpperCase();
+			if(registro.contains(patron) ) busqueda.add(registro);
+		}	
+		return busqueda;
+	}
 
 	
 // --------------------------------------------
 	
-public void GuardarArchivoTxt(String texto) {
+public void GuardarArchivoTxt(List<String> lista) {
 	try {
-		String nombreArchivo = RUTA_PDF.replace(".pdf", ".txt");
-		
+		String nombreArchivo = RUTA_PDF.replace(".pdf", ".txt"); 
 		FileWriter salida = new FileWriter(nombreArchivo);
-		salida.write(texto);
+		for (String linea : lista) {
+			salida.write(linea);
+			salida.write("\n");
+		}
 		salida.close();
 	} catch (IOException ioe) {
 		ioe.printStackTrace();
@@ -82,19 +160,16 @@ public void GuardarArchivoTxt(String texto) {
 			for (Element enlace : enlaces) {
 				String txtEnlace = enlace.attr("href");
 				// COGEMOS EL 1º ENLACE QUE APAREZCA, EL DE ZARAGOZA.
-				if(txtEnlace.startsWith("http://fabasket.com/wp-content/upload")) { 
+				if(txtEnlace.startsWith("http://fabasket.com/wp-content/upload")) 
 					lista_provincias.add(txtEnlace);
-				}
 			}
 		}catch(IOException e) { e.printStackTrace();}
-
 	}
 	
 	
 	public void descargarPdf() {
 		obtenerEnlace();
-		Html.getDownloadFile(lista_provincias.get(0), RUTA_PDF);
-		// get(0) devuelve ZARAGOZA.
+		Html.getDownloadFile(lista_provincias.get(0), RUTA_PDF);// get(0) devuelve ZARAGOZA.
 	}
 	
 	public String convertirPDFaTXT(String ruta)  {
@@ -106,7 +181,6 @@ public void GuardarArchivoTxt(String texto) {
 	      Metadata metadata = new Metadata();
 	      PDFParser pdfparser = new PDFParser();
 	      pdfparser.parse(is, contenthandler, metadata, new ParseContext());
-	      //System.out.println(contenthandler.toString());
 	      texto = contenthandler.toString();
 	    }
 	    catch (Exception e) {  e.printStackTrace(); }
@@ -117,19 +191,7 @@ public void GuardarArchivoTxt(String texto) {
 		return texto;
 	}
 	
-	public void GuardarArchivoTxt(List<String> lista) {
-		try {
-			String nombreArchivo = RUTA_PDF.replace(".pdf", ".txt");
-			FileWriter salida = new FileWriter(nombreArchivo);
-			for (String linea : lista) {
-				salida.write(linea);
-				salida.write("\n");
-			}
-			salida.close();
-		} catch (IOException ioe) {
-			ioe.printStackTrace();
-		}
-	}
+	
 
  
   /*
@@ -145,29 +207,9 @@ public void GuardarArchivoTxt(String texto) {
 		return resultado;
 	}
  
- public List<String> obtenerListaHorarios(String html) {
-	List<String> lista = new ArrayList<String>();
-	Document doc = Jsoup.parse(html);
-	Elements lineas = doc.select("p");  
-	for (Element linea : lineas) {
-		lista.add(linea.text());
-	}
-	return lista;
-}
- 
-public void obtenerListaTextoFinal(String html) {
-	lineasPdf = new ArrayList<String>();
-	Document doc = Jsoup.parse(html);
-	Elements lineas = doc.select("p");  
-	for (Element enlace : lineas) {
-		lineasPdf.add(enlace.text());
-		// System.out.println(enlace.text());     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		
-	}
-}
 
-
-
+   */
+	
 	public String  convertirPDFaHTML(String ruta)  {
 		InputStream is = null;
 		String html="";
@@ -184,10 +226,20 @@ public void obtenerListaTextoFinal(String html) {
 	    }
 	    return html; 
 	}
-
-   
-   */
 	
+	/*
+	public void GuardarArchivoTxt(String texto) {
+		try {
+			String nombreArchivo = RUTA_PDF.replace(".pdf", ".txt");
+			
+			FileWriter salida = new FileWriter(nombreArchivo);
+			salida.write(texto);
+			salida.close();
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		}
+	}
+	*/
 	
 	
 }

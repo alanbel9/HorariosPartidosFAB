@@ -1,7 +1,7 @@
 package Principal;
 
 import java.awt.EventQueue;
-
+import abl.libreria.*;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
@@ -24,17 +24,21 @@ import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JProgressBar;
 
-public class AppGrafica  {
+public class AppGrafica extends Thread  {
 
 	private JFrame frmHorariosFab;
 	private JTextField txtRuta;
 	private JTextField txtBuscar;
 	public Principal principal;
+	public JProgressBar progressBar;
 	
 	//progressbar
 	public int contador = 1;
-	public Thread hilo = new Thread();
-	Task task;
+	public Thread hilo1 = new Thread() {
+		public void run() {
+			progressBar.setValue(contador);
+		}
+	};
 
 	/**
 	 * Launch the application.
@@ -92,11 +96,11 @@ public class AppGrafica  {
 		frmHorariosFab.getContentPane().add(txtRuta);
 		txtRuta.setColumns(10);
 		
-		JProgressBar progressBar = new JProgressBar();
+		progressBar = new JProgressBar();
 		progressBar.setStringPainted(true);
 		progressBar.setBackground(Color.CYAN);
 		progressBar.setFont(new Font("Tahoma", Font.BOLD, 12));
-		progressBar.setForeground(Color.BLACK);
+		progressBar.setForeground(new Color(0, 0, 255));
 		progressBar.setBounds(187, 50, 299, 32);
 		frmHorariosFab.getContentPane().add(progressBar);
 		
@@ -122,11 +126,8 @@ public class AppGrafica  {
 		JButton btnDescargarHorarios = new JButton("Descargar horarios");
 		btnDescargarHorarios.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-
-			//	int progress = task.hashCode();   // ???????????
-				//progressBar.setValue(10);
+				//hilo1.start();
 				
-						
 				// si se ha introducido una ruta
 				if(txtRuta.getText().trim().length() == 0  )  
 					JOptionPane.showMessageDialog(null, "No has introducido ningún destino. ");
@@ -134,16 +135,19 @@ public class AppGrafica  {
 					txtRuta.setText(txtRuta.getText()+".pdf");
 					principal.RUTA_PDF = txtRuta.getText();
 					principal.descargarPdf();
-					String texto = principal.convertirPDFaTXT(principal.RUTA_PDF);
-					principal.GuardarArchivoTxt(texto);
-					txtAreaPrincipal.setText(texto); 
+					
+					List<String> lista = principal.obtenerListaPDF();
+					principal.GuardarArchivoTxt(lista);
+					lista.forEach( fila -> txtAreaPrincipal.append(fila + "\n") );
+					progressBar.setValue(100);
 				}
 				else{
 					principal.RUTA_PDF = txtRuta.getText();
 					principal.descargarPdf();
-					String texto = principal.convertirPDFaTXT(principal.RUTA_PDF);
-					principal.GuardarArchivoTxt(texto);
-					txtAreaPrincipal.setText(texto); 
+					List<String> lista = principal.obtenerListaPDF();
+					principal.GuardarArchivoTxt(lista);
+					lista.forEach( fila -> txtAreaPrincipal.append(fila + "\n") );
+					progressBar.setValue(100);
 				}
 				
 				
@@ -158,7 +162,8 @@ public class AppGrafica  {
 				List<String> busqueda = new ArrayList<String>();
 				String patron = txtBuscar.getText().trim();
 				String rutaArchivo = principal.RUTA_PDF.replace(".pdf", ".txt");
-				busqueda = principal.buscarEnFichero(rutaArchivo, patron);				
+				//busqueda = principal.buscarEnFichero(rutaArchivo, patron);	
+				busqueda = principal.buscarEnLista(principal.obtenerListaCompletaBUSQUEDA() ,patron);
 				
 				try {
 					FileWriter infoBusqueda = new FileWriter(principal.RUTA_PDF.replace(".pdf", "BUSQUEDA.txt"));
