@@ -57,7 +57,7 @@ public class Principal {
 				for(int j=indiceCat+1; j<siguiente ; j++) {
 					String linea = contenidoPdf.get(j);
 					if( ((j+1) <= categorias.size()-1 ) ||  !linea.equals(categorias.get(i+1))  ) {
-							listaNueva.add(categoria + " --- " + linea);
+							listaNueva.add(categoria + " => " + linea);
 					}
 				}
 			}

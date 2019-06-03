@@ -72,23 +72,11 @@ public class AppGrafica extends Thread  {
 	private void initialize() {
 		frmHorariosFab = new JFrame();
 		frmHorariosFab.setTitle("Horarios FAB");
-		frmHorariosFab.setBounds(100, 100, 847, 550);
+		frmHorariosFab.setBounds(100, 100, 1004, 550);
 		frmHorariosFab.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmHorariosFab.getContentPane().setLayout(null);
 		
 		JFileChooser destino = new JFileChooser();
-		
-		JTextArea txtAreaPrincipal = new JTextArea();
-		txtAreaPrincipal.setBorder(new LineBorder(Color.ORANGE, 1, true));
-		txtAreaPrincipal.setFont(new Font("Calibri", Font.PLAIN, 14));
-		txtAreaPrincipal.setBounds(33, 11, 648, 344);
-		frmHorariosFab.getContentPane().add(txtAreaPrincipal);
-		
-		JScrollPane scroller = new JScrollPane(txtAreaPrincipal);
-		scroller.setBounds(23, 93, 650, 373);
-		JScrollBar bar = new JScrollBar();
-		scroller.add(bar);
-		frmHorariosFab.getContentPane().add(scroller);
 		
 		txtRuta = new JTextField();
 		txtRuta.setEditable(false);
@@ -103,6 +91,17 @@ public class AppGrafica extends Thread  {
 		progressBar.setForeground(new Color(0, 0, 255));
 		progressBar.setBounds(187, 50, 299, 32);
 		frmHorariosFab.getContentPane().add(progressBar);
+		
+		JTextArea txtAreaPrincipal = new JTextArea();
+		txtAreaPrincipal.setBorder(new LineBorder(Color.BLUE, 2, true));
+		txtAreaPrincipal.setBounds(23, 110, 771, 374);
+		frmHorariosFab.getContentPane().add(txtAreaPrincipal);
+		
+		JScrollPane scroller = new JScrollPane(txtAreaPrincipal);
+		scroller.setBounds(23, 110, 771, 374);
+		JScrollBar bar = new JScrollBar();
+		scroller.add(bar);
+		frmHorariosFab.getContentPane().add(scroller);
 		
 		JButton btnSeleccionarDestino = new JButton("Seleccionar destino");
 		btnSeleccionarDestino.addActionListener(new ActionListener() {
@@ -162,8 +161,10 @@ public class AppGrafica extends Thread  {
 				List<String> busqueda = new ArrayList<String>();
 				String patron = txtBuscar.getText().trim();
 				String rutaArchivo = principal.RUTA_PDF.replace(".pdf", ".txt");
-				//busqueda = principal.buscarEnFichero(rutaArchivo, patron);	
 				busqueda = principal.buscarEnLista(principal.obtenerListaCompletaBUSQUEDA() ,patron);
+				// escribir en textArea la busqueda.
+				txtAreaPrincipal.setText("");
+				busqueda.forEach( fila -> txtAreaPrincipal.append(fila + "\n") );
 				
 				try {
 					FileWriter infoBusqueda = new FileWriter(principal.RUTA_PDF.replace(".pdf", "BUSQUEDA.txt"));
@@ -174,7 +175,8 @@ public class AppGrafica extends Thread  {
 						catch(IOException e) {e.printStackTrace();}
 						
 						});
-					infoBusqueda.close();
+					infoBusqueda.close();					
+				
 				} catch (IOException ioe) {
 					ioe.printStackTrace();
 				}
@@ -183,13 +185,15 @@ public class AppGrafica extends Thread  {
 			}
 		});
 		btnBuscar.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		btnBuscar.setBounds(683, 183, 138, 44);
+		btnBuscar.setBounds(823, 178, 138, 44);
 		frmHorariosFab.getContentPane().add(btnBuscar);
 		
 		txtBuscar = new JTextField();
-		txtBuscar.setBounds(683, 139, 138, 33);
+		txtBuscar.setBounds(823, 134, 138, 33);
 		frmHorariosFab.getContentPane().add(txtBuscar);
 		txtBuscar.setColumns(10);
+		
+
 		
 		
 		
